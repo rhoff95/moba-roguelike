@@ -10,7 +10,8 @@ namespace Actors
         [SerializeField] [Range(0f, 5f)] private float speed;
         [SerializeField] private Grid grid;
         [SerializeField] private Tilemap tilemap;
-        [SerializeField] private Collider2D gridCollider;
+        [SerializeField] private TilemapCollider2D tilemapCollider2D;
+        [SerializeField] private CompositeCollider2D compositeCollider2D;
 
         [SerializeField] public Vector3? _targetPosition;
 
@@ -50,42 +51,7 @@ namespace Actors
 
         private void OnDrawGizmos()
         {
-            Gizmos.color = Color.magenta;
-            
-            var colliderBounds = gridCollider.bounds;
-
-            var v = colliderBounds.max.x;
-            var xBoundsMax = colliderBounds.max.x;
-            var xBoundsMin = colliderBounds.min.x;
-            
-            var yBoundsMax = colliderBounds.max.y;
-            var yBoundsMin = colliderBounds.min.y;
-
-            var xMax = xBoundsMax - (yBoundsMax % (grid.cellSize.x / 2f));
-            var yMax = yBoundsMax - (yBoundsMax % (grid.cellSize.y *(3/4f)));
-
-
-            var yValues = new List<float>();
-            
-            for (var y = yMax; y > yBoundsMin; y -= grid.cellSize.y * (3/4f))
-            {
-                yValues.Add(y);
-
-                var even = y % (grid.cellSize.y * (3 / 2f)) == 0f;
-
-                var offset = even ? 0f : 0f;// grid.cellSize.x;// / 2f;
-                Gizmos.color = even ? Color.magenta : Color.green;
-                
-                for (var x = xMax + offset; x > xBoundsMin; x -= grid.cellSize.x)
-                {
-                    Gizmos.DrawWireSphere(new Vector3(x, y, 0f), 0.1f);     
-                }
-                
-                // Gizmos.DrawLine(
-                //     new Vector3(colliderBounds.min.x, y, 0f),
-                //     new Vector3(colliderBounds.max.x, y, 0f)
-                // );
-            }
+           
             
             
          
