@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -7,13 +7,13 @@ namespace Grids
 {
     public class GridController : MonoBehaviour
     {
-        [SerializeField] private UnityEngine.Grid grid;
+        [SerializeField] private Grid grid;
         [SerializeField] private Tilemap tilemap;
         [SerializeField] private TilemapCollider2D tilemapCollider2D;
         [SerializeField] private CompositeCollider2D compositeCollider2D;
 
-        private HexGrid _hexGrid = new HexGrid();
-
+        private readonly Dictionary<int, Dictionary<int, HexCell>> _grid = new();
+        
         private void Start()
         {
             var colliderBounds = compositeCollider2D.bounds;
@@ -44,7 +44,7 @@ namespace Grids
                     // TODO Move this to the grid, ask the grid
                     var overlapPoint = Physics2D.OverlapPoint(cellWorldPosition2);
 
-                    _hexGrid.AddCell(
+                    AddCell(
                         cellWorldPosition2,
                         new Vector2Int(rowIndex, columnIndex),
                         overlapPoint == null);
@@ -56,14 +56,26 @@ namespace Grids
             }
         }
 
+        private void AddCell(Vector3 worldPosition, Vector2Int gridPosition, bool traversable)
+        {
+            if (!_grid.ContainsKey(gridPosition.x))
+            {
+                _grid[gridPosition.x] = new Dictionary<int, HexCell>();
+            }
+
+            var row = _grid[gridPosition.x];
+            
+            row[gridPosition.y] = new HexCell(gridPosition, worldPosition, traversable);
+        }
+        
         public Queue<HexCell> GetPath(Vector3 worldPosition)
         {
-            return _hexGrid.GetPath(worldPosition);
+            return new Queue<HexCell>();
         }
 
         private void OnDrawGizmos()
         {
-            _hexGrid.AllCells.ForEach(cell =>
+            _grid.Values.SelectMany(d => d.Values).ToList().ForEach(cell =>
             {
                 Gizmos.color = cell.Traversable ? Color.green : Color.red;
                 Gizmos.DrawWireSphere(cell.WorldPosition, 0.1f);
