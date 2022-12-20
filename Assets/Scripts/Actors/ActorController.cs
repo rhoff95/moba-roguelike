@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Grids;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace Actors
         
         // [SerializeField] public Vector3? _targetPosition;
 
-        [CanBeNull] private HexCell _currentTarget = null;
+        private Vector3? _currentTarget = null;
         private Queue<HexCell> _moveToQueue = new();
 
         private void Awake()
@@ -35,12 +36,12 @@ namespace Actors
 
         private void UpdateMovement()
         {
-            if (_currentTarget == null)
+            if (!_currentTarget.HasValue)
             {
                 return;
             }
 
-            var targetPosition = _currentTarget.WorldPosition;
+            var targetPosition = _currentTarget.Value;
             
             var toTarget = targetPosition - transform.position;
             var distanceToTarget = toTarget.magnitude;
@@ -50,7 +51,7 @@ namespace Actors
             {
                 transform.position = targetPosition;
                 var hasNext = _moveToQueue.TryDequeue(out var result);
-                _currentTarget = hasNext ? result : null;
+                _currentTarget = hasNext ? result.WorldPosition : null;
             }
             else
             {
@@ -60,18 +61,24 @@ namespace Actors
         
         public void SetTargetLocation(Vector3 position)
         {
-            Debug.Log($"Actor ({name}) going to ({position})");
-            
             _moveToQueue = _grid.GetPath(position);
+            
+            Debug.Log($"Actor ({name}) going to ({position}), p1 is ({_moveToQueue.Peek()})");
         }
 
         private void OnDrawGizmos()
         {
-           
-            
-            
-         
+            _moveToQueue.ToList().ForEach(cell =>
+            {
+                Gizmos.color = cell.Traversable ? Color.green : Color.red;
+                Gizmos.DrawWireSphere(cell.WorldPosition, 0.1f);
+            });
 
+            if (_currentTarget.HasValue)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(_currentTarget.Value, 0.1f);
+            }
         }
     }
 }

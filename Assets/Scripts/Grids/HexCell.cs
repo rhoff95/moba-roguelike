@@ -18,5 +18,10 @@ namespace Grids
             WorldPosition = worldPosition;
             Traversable = traversable;
         }
+
+        public override string ToString()
+        {
+            return $"HexCell(GridPosition={GridPosition}, WorldPosition={WorldPosition}, Traversable={Traversable})";
+        }
     }
 }
