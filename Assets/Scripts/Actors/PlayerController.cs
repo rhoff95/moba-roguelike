@@ -39,7 +39,7 @@ namespace Actors
         {
             _controls = new Controls();
             var gameActions = _controls.GameActions;
-            gameActions.RightClick.performed += _ => _recordRightClick = true;
+            gameActions.RightClick.started += _ => _recordRightClick = true;
             gameActions.RightClick.canceled += _ => _recordRightClick = false;
             
         }

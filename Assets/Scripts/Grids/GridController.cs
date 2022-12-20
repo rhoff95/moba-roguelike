@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -11,15 +12,10 @@ namespace Grids
         [SerializeField] private TilemapCollider2D tilemapCollider2D;
         [SerializeField] private CompositeCollider2D compositeCollider2D;
 
-
         private HexGrid _hexGrid = new HexGrid();
-        
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = Color.magenta;
 
-            // compositeCollider2D.geometryType = CompositeCollider2D.GeometryType.Polygons;
-        
+        private void Start()
+        {
             var colliderBounds = compositeCollider2D.bounds;
 
             var v = colliderBounds.max.x;
@@ -33,40 +29,45 @@ namespace Grids
             var xMax = xBoundsMax - (xBoundsMax % (cellSize.x / 2f));
             var yMax = yBoundsMax - (yBoundsMax % (cellSize.y *(3/4f)));
 
-
-            var yValues = new List<float>();
-            
-            for (var y = yMax; y > yBoundsMin; y -= cellSize.y * (3/4f))
+            var rowIndex = 0;
+            for (var row = yMax; row > yBoundsMin; row -= cellSize.y * (3/4f))
             {
-                yValues.Add(y);
-
-                var even = y % (cellSize.y * (3 / 2f)) == 0f;
+                var even = row % (cellSize.y * (3 / 2f)) == 0f;
 
                 var offset = even ? 0f : cellSize.x / 2f;
-               
-                
+
+                var columnIndex = 0;
                 for (var x = xMax - offset; x > xBoundsMin; x -= cellSize.x)
                 {
-                    var cellWorldPosition3 = new Vector3(x, y, 0f);
-                    var cellWorldPosition2 = new Vector3(x, y);
+                    var cellWorldPosition2 = new Vector2(x, row);
 
-                    // var overlapPoint = compositeCollider2D.OverlapPoint(cellWorldPosition2);
+                    // TODO Move this to the grid, ask the grid
                     var overlapPoint = Physics2D.OverlapPoint(cellWorldPosition2);
-                    Gizmos.color = !overlapPoint ? Color.green : Color.red;
-                    
-                    Gizmos.DrawWireSphere(cellWorldPosition2, 0.1f);
-                    
-                    _hexGrid.AddCell(cellWorldPosition2);
-                    
+
+                    _hexGrid.AddCell(
+                        cellWorldPosition2,
+                        new Vector2Int(rowIndex, columnIndex),
+                        overlapPoint == null);
+
+                    columnIndex++;
                 }
-                
-                // Gizmos.DrawLine(
-                //     new Vector3(colliderBounds.min.x, y, 0f),
-                //     new Vector3(colliderBounds.max.x, y, 0f)
-                // );
-            
-                // compositeCollider2D.geometryType = CompositeCollider2D.GeometryType.Outlines;
+
+                rowIndex++;
             }
+        }
+
+        public Queue<HexCell> GetPath(Vector3 worldPosition)
+        {
+            return _hexGrid.GetPath(worldPosition);
+        }
+
+        private void OnDrawGizmos()
+        {
+            _hexGrid.AllCells.ForEach(cell =>
+            {
+                Gizmos.color = cell.Traversable ? Color.green : Color.red;
+                Gizmos.DrawWireSphere(cell.WorldPosition, 0.1f);
+            });
         }
     }
 }
