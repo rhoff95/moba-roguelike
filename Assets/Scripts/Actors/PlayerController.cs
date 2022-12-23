@@ -32,6 +32,9 @@ namespace Actors
                 var worldPosition = _mainCamera.ScreenToWorldPoint(mousePosition);
                 var worldPositionAdjusted = new Vector3(worldPosition.x, worldPosition.y, 0f);
                 _actor.SetTargetLocation(worldPositionAdjusted);
+
+                // TODO Remove, this is to reduce logging
+                _recordRightClick = false;
             }
         }
 

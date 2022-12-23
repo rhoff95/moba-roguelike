@@ -2,15 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 namespace Grids
 {
     public class GridController : MonoBehaviour
     {
         [SerializeField] private Grid grid;
-        [SerializeField] private Tilemap tilemap;
-        [SerializeField] private TilemapCollider2D tilemapCollider2D;
         [SerializeField] private CompositeCollider2D compositeCollider2D;
 
         private readonly Dictionary<int, Dictionary<int, HexCell>> _grid = new();
@@ -30,26 +27,14 @@ namespace Grids
             var xMax = xBoundsMax - (xBoundsMax % (cellSize.x / 2f));
             var yMax = yBoundsMax - (yBoundsMax % (cellSize.y * (3 / 4f)));
 
-            var rowIndex = 0;
             for (var y = yMax; y > yBoundsMin; y -= cellSize.y * (3 / 4f))
             {
-                // if (Mathf.Abs(y) >= 0.5f)
-                // {
-                    // continue;
-                // }
-                
                 var even = y % (cellSize.y * (3 / 2f)) == 0f;
 
                 var offset = even ? 0f : cellSize.x / 2f;
 
-                var columnIndex = 0;
                 for (var x = xMax - offset; x > xBoundsMin; x -= cellSize.x)
                 {
-                    // if (Mathf.Abs(x) >= 0.5f)
-                    // {
-                    //     continue;
-                    // }
-                    
                     var cellWorldPosition2 = new Vector2(x, y);
 
                     // TODO Move this to the grid, ask the grid
@@ -59,50 +44,15 @@ namespace Grids
                     var r = (3f / 3f * y) / (cellSize.y / 2f);
 
                     var gridPosition = AxialRound(q, r);
-                    // var gridPosition = new Vector2Int(rowIndex, columnIndex);
 
-                    // if (gridPosition.y == 0)
-                    // {
-                       
-                    // }
+                    Debug.Log($"Adding hex at {gridPosition}");
 
-                    // try
-                    // {
-                    Debug.Log($"v=<{x:F3}, {y:F3}> <{q:F3}, {r:F3}> => => {gridPosition}");
-                    
-                        AddCell(
-                            cellWorldPosition2,
-                            gridPosition,
-                            overlapPoint == null);
-                        
-                      
-                    // }
-                    // catch (Exception e)
-                    // {
-                        // Debug.LogError(e);
-                        // throw;
-                    // }
-                    
-                   
-
-                    columnIndex++;
+                    AddCell(
+                        cellWorldPosition2,
+                        gridPosition,
+                        overlapPoint == null);
                 }
-
-                rowIndex++;
             }
-        }
-
-        private Vector2Int AxialRound(float x, float y)
-        {
-            var xGrid = (int) Mathf.Round(x);
-            var yGrid = (int) Mathf.Round(y);
-
-            var xRemainder = x - xGrid;
-            var yRemainder = y - yGrid;
-
-            return Mathf.Abs(x) > Mathf.Abs(y)
-                ? new Vector2Int(xGrid + (int) Mathf.Round(xRemainder + 0.5f * yRemainder), yGrid)
-                : new Vector2Int(xGrid, yGrid + (int) Mathf.Round(yRemainder + 0.5f * xRemainder));
         }
 
         private void AddCell(Vector3 worldPosition, Vector2Int gridPosition, bool traversable)
@@ -118,41 +68,91 @@ namespace Grids
             {
                 throw new Exception($"Grid already has value for {gridPosition}");
             }
-            
+
             row[gridPosition.y] = new HexCell(gridPosition, worldPosition, traversable);
         }
 
-        public Queue<HexCell> GetPath(Vector3 worldPosition)
+        public Queue<HexCell> GetPath(Vector3 startWorldPosition, Vector3 endWorldPosition)
         {
             var q = new Queue<HexCell>();
 
-            q.Enqueue(_grid[0][0]);
+            var startGrid = AxialRound(startWorldPosition);
+            var endGrid= AxialRound(endWorldPosition);
+
+            if (startGrid == endGrid)
+            {
+                return q;
+            }
+
+            var endHexRow = _grid[endGrid.x];
+            var endHexExists = endHexRow.TryGetValue(endGrid.y, out var endHex);
+
+            if (!endHexExists)
+            {
+                Debug.LogWarning(
+                    $"Column {endGrid.y} does not exist. Valid column values are {string.Join(", ", endHexRow.Keys)}"
+                    );
+
+                return q;
+            }
+            
+            var startHexRow = _grid[startGrid.x];
+            var startHexExists = startHexRow.TryGetValue(startGrid.y, out var startHex);
+            
+            if (!startHexExists)
+            {
+                Debug.LogWarning(
+                    $"Column {endGrid.y} does not exist. Valid column values are {string.Join(", ", endHexRow.Keys)}"
+                );
+
+                return q;
+            }
+            
+            q.Enqueue(startHex);
+            q.Enqueue(endHex);
 
             return q;
         }
 
+        private static Vector2Int AxialRound(Vector3 position)
+        {
+            return AxialRound(position.x, position.y);
+        }
+
+        private static Vector2Int AxialRound(float x, float y)
+        {
+            var xGrid = (int)Mathf.Round(x);
+            var yGrid = (int)Mathf.Round(y);
+
+            var xRemainder = x - xGrid;
+            var yRemainder = y - yGrid;
+
+            return Mathf.Abs(x) > Mathf.Abs(y)
+                ? new Vector2Int(xGrid + (int)Mathf.Round(xRemainder + 0.5f * yRemainder), yGrid)
+                : new Vector2Int(xGrid, yGrid + (int)Mathf.Round(yRemainder + 0.5f * xRemainder));
+        }
+
         private void OnDrawGizmos()
         {
-            var size = 0.075f;
-            var inc = 0.00f;
+            const float size = 0.1f;
+            const float opacity = 0.5f;
             
             _grid.Values.SelectMany(d => d.Values).ToList().ForEach(cell =>
             {
                 if (cell.GridPosition.x >= 0 && cell.GridPosition.y >= 0)
                 {
-                    Gizmos.color = Color.blue;
+                    Gizmos.color = Color.Lerp(Color.red, Color.clear, opacity);
                 }
                 else if (cell.GridPosition.x <= 0 && cell.GridPosition.y <= 0)
                 {
-                    Gizmos.color = Color.magenta;
+                    Gizmos.color = Color.Lerp(Color.magenta, Color.clear, opacity);
                 }
                 else
                 {
-                    Gizmos.color = Color.red;
+                    Gizmos.color = Color.Lerp(Color.blue, Color.clear, opacity);
                 }
 
                 Gizmos.DrawWireSphere(cell.WorldPosition, size);
-                size += inc;
             });
         }
     }

@@ -61,17 +61,28 @@ namespace Actors
         
         public void SetTargetLocation(Vector3 position)
         {
-            _moveToQueue = _grid.GetPath(position);
+            _moveToQueue = _grid.GetPath(transform.position, position);
             
             Debug.Log($"Actor ({name}) going to ({position}), p1 is ({_moveToQueue.Peek()})");
         }
 
         private void OnDrawGizmos()
         {
+            var moves = _moveToQueue.ToList();
+
+            for (var i = 0; i < moves.Count; i++)
+            {
+                var cell = moves[i];
+
+                var count = (float) Mathf.Max(1, moves.Count - 1);
+                
+                Gizmos.color = Color.Lerp(Color.green, Color.red, i / count);
+                Gizmos.DrawWireSphere(cell.WorldPosition, 0.2f);
+            }
+            
             _moveToQueue.ToList().ForEach(cell =>
             {
-                Gizmos.color = cell.Traversable ? Color.green : Color.red;
-                Gizmos.DrawWireSphere(cell.WorldPosition, 0.1f);
+                
             });
 
             if (_currentTarget.HasValue)
