@@ -16,7 +16,6 @@ namespace Grids
         {
             var colliderBounds = compositeCollider2D.bounds;
 
-            var v = colliderBounds.max.x;
             var xBoundsMax = colliderBounds.max.x;
             var xBoundsMin = colliderBounds.min.x;
 
@@ -40,12 +39,9 @@ namespace Grids
                     // TODO Move this to the grid, ask the grid
                     var overlapPoint = Physics2D.OverlapPoint(cellWorldPosition2);
 
-                    var q = (Mathf.Sqrt(3) / 3 * x - 1f / 3f * y) / (cellSize.y / 2f);
-                    var r = (3f / 3f * y) / (cellSize.y / 2f);
+                    var gridPosition = AxialRound(x, y);
 
-                    var gridPosition = AxialRound(q, r);
-
-                    Debug.Log($"Adding hex at {gridPosition}");
+                    Debug.Log($"Adding hex at G={gridPosition}, W={cellWorldPosition2}");
 
                     AddCell(
                         cellWorldPosition2,
@@ -74,60 +70,75 @@ namespace Grids
 
         public Queue<HexCell> GetPath(Vector3 startWorldPosition, Vector3 endWorldPosition)
         {
-            var q = new Queue<HexCell>();
-
+            var queue = new Queue<HexCell>();
+            
             var startGrid = AxialRound(startWorldPosition);
-            var endGrid= AxialRound(endWorldPosition);
+            var endGrid = AxialRound(endWorldPosition);
 
             if (startGrid == endGrid)
             {
-                return q;
+                return queue;
             }
 
-            var endHexRow = _grid[endGrid.x];
+            var endHexRowExists = _grid.TryGetValue(endGrid.x, out var endHexRow);
+
+            if (!endHexRowExists)
+            {
+                Debug.LogWarning(
+                    $"Row {endGrid.x} does not exist. Valid column values are {string.Join(", ", _grid.Keys)}"
+                );
+
+                return queue;
+            }
+
             var endHexExists = endHexRow.TryGetValue(endGrid.y, out var endHex);
 
             if (!endHexExists)
             {
                 Debug.LogWarning(
                     $"Column {endGrid.y} does not exist. Valid column values are {string.Join(", ", endHexRow.Keys)}"
-                    );
+                );
 
-                return q;
+                return queue;
             }
-            
+
             var startHexRow = _grid[startGrid.x];
             var startHexExists = startHexRow.TryGetValue(startGrid.y, out var startHex);
-            
+
             if (!startHexExists)
             {
                 Debug.LogWarning(
                     $"Column {endGrid.y} does not exist. Valid column values are {string.Join(", ", endHexRow.Keys)}"
                 );
 
-                return q;
+                return queue;
             }
-            
-            q.Enqueue(startHex);
-            q.Enqueue(endHex);
 
-            return q;
+            queue.Enqueue(startHex);
+            queue.Enqueue(endHex);
+
+            return queue;
         }
 
-        private static Vector2Int AxialRound(Vector3 position)
+        private Vector2Int AxialRound(Vector3 position)
         {
             return AxialRound(position.x, position.y);
         }
 
-        private static Vector2Int AxialRound(float x, float y)
+        private Vector2Int AxialRound(float x, float y)
         {
-            var xGrid = (int)Mathf.Round(x);
-            var yGrid = (int)Mathf.Round(y);
+            var cellSize = grid.cellSize;
+            
+            var q = (Mathf.Sqrt(3) / 3 * x - 1f / 3f * y) / (cellSize.y / 2f);
+            var r = (3f / 3f * y) / (cellSize.y / 2f);
+            
+            var xGrid = (int)Mathf.Round(q);
+            var yGrid = (int)Mathf.Round(r);
 
-            var xRemainder = x - xGrid;
-            var yRemainder = y - yGrid;
+            var xRemainder = q - xGrid;
+            var yRemainder = r - yGrid;
 
-            return Mathf.Abs(x) > Mathf.Abs(y)
+            return Mathf.Abs(q) > Mathf.Abs(r)
                 ? new Vector2Int(xGrid + (int)Mathf.Round(xRemainder + 0.5f * yRemainder), yGrid)
                 : new Vector2Int(xGrid, yGrid + (int)Mathf.Round(yRemainder + 0.5f * xRemainder));
         }
@@ -136,7 +147,7 @@ namespace Grids
         {
             const float size = 0.1f;
             const float opacity = 0.5f;
-            
+
             _grid.Values.SelectMany(d => d.Values).ToList().ForEach(cell =>
             {
                 if (cell.GridPosition.x >= 0 && cell.GridPosition.y >= 0)

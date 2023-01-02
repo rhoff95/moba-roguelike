@@ -62,8 +62,14 @@ namespace Actors
         public void SetTargetLocation(Vector3 position)
         {
             _moveToQueue = _grid.GetPath(transform.position, position);
-            
-            Debug.Log($"Actor ({name}) going to ({position}), p1 is ({_moveToQueue.Peek()})");
+
+            if (_moveToQueue.Count > 0)
+            {
+
+                var p = _moveToQueue.Peek();
+
+                Debug.Log($"Actor ({name}) going to ({position}), p1 is ({p})");
+            }
         }
 
         private void OnDrawGizmos()
